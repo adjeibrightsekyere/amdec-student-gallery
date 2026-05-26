@@ -1,0 +1,40 @@
+[
+  {
+    "id": 1,
+    "name": "Fialor Cordelia",
+    "class": "B8",
+    "images": [
+      "/asset/images/cod1.jpg",
+      "/asset/images/cod2.jpeg",
+      "/asset/images/cod3.jpeg"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Hawa Allazi",
+    "class": "B7",
+    "images": [
+      "/asset/images/haw1.jpg",
+      "/asset/images/haw2.jpg",
+      "/asset/images/haw3.jpg",
+      "/asset/images/haw3.jpg"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Wunsule Gariba",
+    "class": "B6",
+    "images": [
+      "/asset/images/wu1.jpg",
+      "/asset/images/wu2.jpg"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Queenstar",
+    "class": "B8",
+    "images": [
+      "https://student-gallery-images.s3.us-east-1.amazonaws.com/B8/1779637629668-IMG-20250620-WA0026.jpg"
+    ]
+  }
+]
