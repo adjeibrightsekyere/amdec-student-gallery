@@ -53,33 +53,40 @@ export default function UploadForm({ classId }: { classId: string }) {
   };
 
   return (
-    <section className="my-6 p-4 border rounded bg-slate-50">
-      <h2 className="text-lg font-semibold mb-3">Upload student image</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <section className="rounded-[2rem] border border-slate-200 bg-white/95 p-6 shadow-xl shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-950/90 dark:shadow-slate-950/60">
+      <div className="mb-6 flex flex-col gap-2">
+        <p className="text-sm uppercase tracking-[0.3em] text-sky-600">Upload</p>
+        <h2 className="text-2xl font-semibold text-slate-900">Add or update a student photo</h2>
+        <p className="text-sm text-slate-500">Upload a new image for a student and keep class galleries up to date.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium">Student name</label>
+          <label className="text-sm font-medium text-slate-700">Student name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="mt-2 w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
             placeholder="Student Name"
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium">Student ID (optional)</label>
+          <label className="text-sm font-medium text-slate-700">Student ID (optional)</label>
           <input
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="mt-2 w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
             placeholder="ID if already known"
           />
         </div>
+
         <div>
-          <label className="block text-sm font-medium">Class</label>
+          <label className="text-sm font-medium text-slate-700">Class</label>
           <select
             value={studentClass}
             onChange={(e) => setStudentClass(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="mt-2 w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
           >
             <option value="">Choose class</option>
             <option value="B8">B8</option>
@@ -88,25 +95,28 @@ export default function UploadForm({ classId }: { classId: string }) {
             <option value="B5">B5</option>
           </select>
         </div>
+
         <div>
-          <label className="block text-sm font-medium">Image</label>
+          <label className="text-sm font-medium text-slate-700">Image</label>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-            className="w-full"
+            className="mt-2 w-full rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
           />
         </div>
+
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-3xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Uploading…" : "Upload image"}
         </button>
       </form>
-      {status ? <p className="mt-3 text-sm">{status}</p> : null}
+
+      {status ? <p className="status-message">{status}</p> : null}
     </section>
   );
 }

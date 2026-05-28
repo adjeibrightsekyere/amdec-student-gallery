@@ -2,102 +2,171 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, loginUser, registerUser, UserRole } from "@/app/lib/auth";
+import { useSession, signIn } from "next-auth/react";
+import type { UserRole } from "@/app/lib/authHelpers";
 
 export default function AuthForm() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("visitor");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      router.replace(user.role === "admin" ? "/admin" : "/visitor");
+    if (status === "authenticated" && session?.user) {
+      const redirectPath = session.user.role === "admin" ? "/admin" : "/visitor";
+      router.replace(redirectPath);
     }
-  }, [router]);
+  }, [status, session, router]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage("");
+    setLoading(true);
 
-    const action = mode === "signin" ? loginUser(username, password) : registerUser(username, password, role);
-    if (!action.success) {
-      setMessage(action.error || "Something went wrong.");
-      return;
+    try {
+      if (mode === "signin") {
+        const result = await signIn("credentials", {
+          username,
+          password,
+          redirect: false,
+        });
+
+        if (!result?.ok) {
+          setMessage(result?.error || "Invalid username or password.");
+          setLoading(false);
+          return;
+        }
+
+        router.push("/admin");
+      } else {
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, role }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setMessage(data.error || "Registration failed.");
+          setLoading(false);
+          return;
+        }
+
+        const signInResult = await signIn("credentials", {
+          username,
+          password,
+          redirect: false,
+        });
+
+        if (!signInResult?.ok) {
+          setMessage("Registration successful, but login failed. Please sign in.");
+          setLoading(false);
+          return;
+        }
+
+        router.push(role === "admin" ? "/admin" : "/visitor");
+      }
+    } catch (error) {
+      setMessage("An error occurred. Please try again.");
+      console.error("Auth error:", error);
+    } finally {
+      setLoading(false);
     }
-
-    router.replace(action.user?.role === "admin" ? "/admin" : "/visitor");
   };
 
+  if (status === "loading") {
+    return (
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-12">
+        <div className="rounded-[2rem] bg-white/95 p-8 shadow-xl shadow-slate-200/80 dark:bg-slate-950/90 dark:shadow-slate-950/60">
+          <p className="text-center text-sm text-slate-500 dark:text-slate-300">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="p-8 max-w-lg mx-auto">
-      <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold">Welcome to Student Gallery</h1>
-        <p className="mt-2 text-slate-600">Sign in or create an account to continue.</p>
-      </div>
-
-      <div className="flex justify-center gap-2 mb-6">
-        <button
-          className={`px-4 py-2 rounded ${mode === "signin" ? "bg-blue-600 text-white" : "bg-slate-100"}`}
-          onClick={() => setMode("signin")}
-          type="button"
-        >
-          Sign in
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${mode === "signup" ? "bg-blue-600 text-white" : "bg-slate-100"}`}
-          onClick={() => setMode("signup")}
-          type="button"
-        >
-          Sign up
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow-sm">
-        <div>
-          <label className="block text-sm font-medium">Username</label>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full border rounded p-2"
-            placeholder="Enter username"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded p-2"
-            placeholder="Enter password"
-          />
-        </div>
-
-        {mode === "signup" ? (
-          <div>
-            <label className="block text-sm font-medium">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full border rounded p-2"
-            >
-              <option value="visitor">Visitor</option>
-              <option value="admin">Admin</option>
-            </select>
+    <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-12 text-slate-900 dark:text-slate-100">
+      <div className="w-full max-w-2xl space-y-8">
+        <section className="rounded-[2rem] border border-slate-200 bg-white text-slate-900 p-8 shadow-xl shadow-slate-200/70 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:shadow-slate-950/60">
+          <div className="mb-8 space-y-3 text-center">
+            <p className="text-xs uppercase tracking-[0.35em] text-sky-600">Student Gallery</p>
+            <h1 className="text-4xl font-semibold text-slate-900 dark:text-slate-100">Sign in or create an account</h1>
+            <p className="max-w-xl mx-auto text-sm text-slate-500 dark:text-slate-400">Access student galleries, upload photos, and manage classes with secure user roles.</p>
           </div>
-        ) : null}
 
-        <button type="submit" className="w-full bg-blue-600 text-white rounded px-4 py-2">
-          {mode === "signin" ? "Sign in" : "Create account"}
-        </button>
-      </form>
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+            <button
+              className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${mode === "signin" ? "border-sky-600 bg-sky-600 text-white shadow-lg shadow-sky-600/20" : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"}`}
+              onClick={() => setMode("signin")}
+              type="button"
+            >
+              Sign in
+            </button>
+            <button
+              className={`rounded-full border px-6 py-3 text-sm font-semibold transition ${mode === "signup" ? "border-sky-600 bg-sky-600 text-white shadow-lg shadow-sky-600/20" : "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"}`}
+              onClick={() => setMode("signup")}
+              type="button"
+            >
+              Sign up
+            </button>
+          </div>
 
-      {message ? <p className="mt-4 text-red-600">{message}</p> : null}
+          <form onSubmit={handleSubmit} className="space-y-6 bg-transparent">
+            <div>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-200">Username</label>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="mt-3 w-full rounded-3xl border border-slate-300 bg-white px-5 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
+                placeholder="Enter username"
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-200">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-3 w-full rounded-3xl border border-slate-300 bg-white px-5 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
+                placeholder="Enter password"
+                disabled={loading}
+              />
+            </div>
+
+            {mode === "signup" ? (
+              <div>
+                <label className="text-sm font-medium text-slate-900 dark:text-slate-200">Role</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as UserRole)}
+                  className="mt-3 w-full rounded-3xl border border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/40"
+                  disabled={loading}
+                >
+                  <option value="visitor">Visitor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              className="w-full rounded-3xl bg-sky-600 px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-sky-600/20 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+            >
+              {loading ? "Loading..." : mode === "signin" ? "Sign in" : "Create account"}
+            </button>
+          </form>
+
+          {message ? <p className="mt-4 text-center text-sm text-red-600 dark:text-red-400">{message}</p> : null}
+        </section>
+      </div>
     </main>
   );
 }

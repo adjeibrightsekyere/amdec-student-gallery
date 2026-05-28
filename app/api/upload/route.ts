@@ -3,8 +3,15 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 import { getStudents, addStudent, updateStudent } from "@/app/lib/studentService";
 import { Student } from "@/app/types/student";
+import { requireAuth } from "@/app/lib/apiAuth";
 
 export async function POST(request: Request) {
+  const auth = await requireAuth("admin");
+
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   const formData = await request.formData();
   const name = formData.get("name")?.toString()?.trim();
   const studentClass = formData.get("class")?.toString()?.trim();
