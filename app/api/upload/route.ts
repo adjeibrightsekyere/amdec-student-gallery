@@ -39,14 +39,14 @@ const buffer = Buffer.from(await imageFile.arrayBuffer());
 
 await s3.send(
   new PutObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.MY_AWS_BUCKET_NAME!,
     Key: `${studentClass}/${safeFileName}`,
     Body: buffer,
     ContentType: imageFile.type,
   })
 );
 
-const publicPath = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${studentClass}/${safeFileName}`;
+const publicPath = `https://${process.env.MY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${studentClass}/${safeFileName}`;
 
   
 

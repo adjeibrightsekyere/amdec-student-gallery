@@ -49,7 +49,7 @@ Ensure `.env.local` has the required variables:
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-key
 AWS_SECRET_ACCESS_KEY=your-secret
-AWS_BUCKET_NAME=your-bucket
+MY_AWS_BUCKET_NAME=your-bucket
 
 # MongoDB
 MONGODB_URI=your-mongodb-connection-string

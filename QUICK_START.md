@@ -169,7 +169,7 @@ Your `.env.local` should now have:
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-key
 AWS_SECRET_ACCESS_KEY=your-secret
-AWS_BUCKET_NAME=bucket-name
+MY_AWS_BUCKET_NAME=bucket-name
 
 # Existing MongoDB
 MONGODB_URI=your-connection-string
