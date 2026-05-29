@@ -14,6 +14,7 @@ export default function AuthForm() {
   const [role, setRole] = useState<UserRole>("visitor");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [adminAvailable, setAdminAvailable] = useState<boolean>(true);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
@@ -21,6 +22,22 @@ export default function AuthForm() {
       router.replace(redirectPath);
     }
   }, [status, session, router]);
+
+  // Check if admin slots are available
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const res = await fetch("/api/auth/adminCount");
+        if (!res.ok) return;
+        const data = await res.json();
+        setAdminAvailable((data.count ?? 0) < 3);
+      } catch (err) {
+        console.error("Failed to fetch admin count", err);
+      }
+    };
+
+    checkAdmin();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -150,7 +167,13 @@ export default function AuthForm() {
                   disabled={loading}
                 >
                   <option value="visitor">Visitor</option>
-                  <option value="admin">Admin</option>
+                  {adminAvailable ? (
+                    <option value="admin">Admin</option>
+                  ) : (
+                    <option value="visitor" disabled>
+                      Admin (full)
+                    </option>
+                  )}
                 </select>
               </div>
             ) : null}

@@ -23,6 +23,18 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
 
+    // Enforce maximum number of admins
+    if (role === "admin") {
+      const MAX_ADMINS = 3;
+      const adminCount = await db.collection("users").countDocuments({ role: "admin" });
+      if (adminCount >= MAX_ADMINS) {
+        return NextResponse.json(
+          { error: "Admin registrations are closed" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Check if user already exists
     const existingUser = await db.collection("users").findOne({
       username: username.toLowerCase(),
