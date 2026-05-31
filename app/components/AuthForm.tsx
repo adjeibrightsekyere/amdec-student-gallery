@@ -58,10 +58,11 @@ export default function AuthForm() {
           return;
         }
 
-        const sessionRes = await fetch("/api/auth/session");
-        const sessionData = await sessionRes.json();
-        const redirectPath = sessionData?.user?.role === "admin" ? "/admin" : "/visitor";
-        router.push(redirectPath);
+        // Give the session provider time to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Redirect based on stored credentials - we'll verify role server-side in middleware
+        router.push("/visitor");
       } else {
         const response = await fetch("/api/auth/register", {
           method: "POST",
