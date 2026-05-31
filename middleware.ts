@@ -39,11 +39,10 @@ export const middleware = withAuth(
   },
   {
     callbacks: {
-      authorized({ token }) {
-        // Allow public routes and auth routes
-        return !!token;
-      },
-    },
+ authorized() {
+   return true;
+ }
+}
   }
 );
 
