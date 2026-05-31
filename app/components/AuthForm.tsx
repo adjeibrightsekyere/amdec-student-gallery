@@ -58,7 +58,10 @@ export default function AuthForm() {
           return;
         }
 
-        router.push("/admin");
+        const sessionRes = await fetch("/api/auth/session");
+        const sessionData = await sessionRes.json();
+        const redirectPath = sessionData?.user?.role === "admin" ? "/admin" : "/visitor";
+        router.push(redirectPath);
       } else {
         const response = await fetch("/api/auth/register", {
           method: "POST",
