@@ -9,7 +9,7 @@ export default function VisitorPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState<string[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -25,14 +25,18 @@ export default function VisitorPage() {
       return;
     }
 
-    fetch("/api/classes")
-      .then((res) => res.json())
+    fetch("/api/activities")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        setClasses(data);
+        setActivities(data || []);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching classes:", err);
+        console.error("Error fetching activities:", err);
+        setActivities([]);
         setLoading(false);
       });
   }, [status, session, router]);
@@ -70,22 +74,16 @@ export default function VisitorPage() {
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/95 p-6 shadow-xl shadow-slate-200/70 dark:border-slate-700 dark:bg-slate-950/90 dark:shadow-slate-950/60">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Classes</p>
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Choose a class</h2>
-          </div>
-          <p className="text-sm text-slate-500">View student photos and class details.</p>
+        <div className="mb-6">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Activities</p>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Recent activities</h2>
         </div>
 
-        <div className="class-grid">
-          {classes.map((className) => (
-            <Link
-              key={className}
-              href={`/class/${className}`}
-              className="class-card"
-            >
-              <h2 className="text-2xl font-semibold text-slate-900">{className}</h2>
+        <div className="grid gap-4">
+          {activities.map((a) => (
+            <Link key={a.id} href={`/activities/${a.id}`} className="block rounded-xl border p-4">
+              <h3 className="font-semibold">{a.name}</h3>
+              <p className="text-sm text-slate-500">{new Date(a.date).toLocaleDateString()}</p>
             </Link>
           ))}
         </div>
