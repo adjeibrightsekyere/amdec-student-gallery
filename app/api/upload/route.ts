@@ -43,6 +43,7 @@ await s3.send(
     Key: `${studentClass}/${safeFileName}`,
     Body: buffer,
     ContentType: imageFile.type,
+    ACL: "public-read",
   })
 );
 

@@ -34,6 +34,7 @@ export async function POST(
         Key: keyPath,
         Body: buffer,
         ContentType: file.type,
+        ACL: "public-read",
       })
     );
 

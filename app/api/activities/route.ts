@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
         Key: keyPath,
         Body: buffer,
         ContentType: file.type,
+        ACL: "public-read",
       })
     );
 
