@@ -6,9 +6,7 @@ import { getActivities, addActivity } from "@/app/lib/activityService";
 
 export async function GET(request: NextRequest) {
   try {
-    // Public endpoint: return activities to visitors and admins
     const activities = await getActivities();
-    // sort newest first
     activities.sort((a: any, b: any) => (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0));
     return NextResponse.json(activities);
   } catch (err) {
@@ -50,15 +48,18 @@ export async function POST(request: NextRequest) {
         Key: keyPath,
         Body: buffer,
         ContentType: file.type,
-        ACL: "public-read",
+        // ACL removed
       })
     );
 
-    const publicPath = `https://${process.env.MY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${keyPath}`;
+    const region = process.env.MY_AWS_REGION;
+    const host = region
+      ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
+      : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
+    const publicPath = `https://${host}/${keyPath}`;
     uploadedPaths.push(publicPath);
   }
 
-  // assign numeric id
   const activities = await getActivities();
   const nextId = (activities.reduce((max: number, a: any) => Math.max(max, a.id || 0), 0) || 0) + 1;
 

@@ -34,59 +34,42 @@ export async function POST(request: NextRequest) {
   });
 
   const safeFileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+  const buffer = Buffer.from(await imageFile.arrayBuffer());
 
-const buffer = Buffer.from(await imageFile.arrayBuffer());
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.MY_AWS_BUCKET_NAME!,
+      Key: `${studentClass}/${safeFileName}`,
+      Body: buffer,
+      ContentType: imageFile.type,
+      // ACL removed
+    })
+  );
 
-await s3.send(
-  new PutObjectCommand({
-    Bucket: process.env.MY_AWS_BUCKET_NAME!,
-    Key: `${studentClass}/${safeFileName}`,
-    Body: buffer,
-    ContentType: imageFile.type,
-    ACL: "public-read",
-  })
-);
-
-const publicPath = `https://${process.env.MY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${studentClass}/${safeFileName}`;
-
-  
+  const region = process.env.MY_AWS_REGION;
+  const host = region
+    ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
+    : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
+  const publicPath = `https://${host}/${studentClass}/${safeFileName}`;
 
   let uploadedStudent: any;
 
-if (existingStudent) {
-  const updatedImages = [
-    ...existingStudent.images,
-    publicPath,
-  ];
-
-  await updateStudent(existingStudent.id, {
-    images: updatedImages,
-  });
-
-  uploadedStudent = {
-    ...existingStudent,
-    images: updatedImages,
-  };
-} else {
-  const nextId =
-    students.reduce(
-      (max: number, student: any) =>
-        Math.max(max, student.id),
-      0
-    ) + 1;
-
-  const newStudent: Student = {
-    id: numericId ?? nextId,
-    name,
-    class: studentClass,
-    images: [publicPath],
-  };
-
-  console.log("Adding new student:", newStudent);
-  await addStudent(newStudent);
-
-  uploadedStudent = newStudent;
-}
+  if (existingStudent) {
+    const updatedImages = [...existingStudent.images, publicPath];
+    await updateStudent(existingStudent.id, { images: updatedImages });
+    uploadedStudent = { ...existingStudent, images: updatedImages };
+  } else {
+    const nextId = students.reduce((max: number, student: any) => Math.max(max, student.id), 0) + 1;
+    const newStudent: Student = {
+      id: numericId ?? nextId,
+      name,
+      class: studentClass,
+      images: [publicPath],
+    };
+    console.log("Adding new student:", newStudent);
+    await addStudent(newStudent);
+    uploadedStudent = newStudent;
+  }
 
   return NextResponse.json({ success: true, student: uploadedStudent });
 }

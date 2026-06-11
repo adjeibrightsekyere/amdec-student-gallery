@@ -2,12 +2,11 @@ import { NextResponse, NextRequest } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 import { requireAuth } from "@/app/lib/apiAuth";
-import { UpdateFilter } from "mongodb";
-import { getActivities, pushImagesToActivity } from "@/app/lib/activityService";
+import { pushImagesToActivity } from "@/app/lib/activityService";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAuth("admin");
   if (!auth.authorized) return auth.response;
@@ -34,15 +33,17 @@ export async function POST(
         Key: keyPath,
         Body: buffer,
         ContentType: file.type,
-        ACL: "public-read",
       })
     );
 
-    const publicPath = `https://${process.env.MY_AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${keyPath}`;
+    const region = process.env.MY_AWS_REGION;
+    const host = region
+      ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
+      : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
+    const publicPath = `https://${host}/${keyPath}`;
     uploaded.push(publicPath);
   }
 
-  // push uploaded into activity.images
   await pushImagesToActivity(activityId, uploaded);
 
   return NextResponse.json({ success: true, images: uploaded });
