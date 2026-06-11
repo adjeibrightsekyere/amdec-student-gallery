@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { requireAuth } from "@/app/lib/apiAuth";
 import { removeImageFromActivity } from "@/app/lib/activityService";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const auth = await requireAuth("admin");
   if (!auth.authorized) return auth.response;
 

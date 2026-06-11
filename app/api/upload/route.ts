@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 import { getStudents, addStudent, updateStudent } from "@/app/lib/studentService";
 import { Student } from "@/app/types/student";
 import { requireAuth } from "@/app/lib/apiAuth";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const auth = await requireAuth("admin");
 
   if (!auth.authorized) {

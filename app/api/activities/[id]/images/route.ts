@@ -1,15 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 import { requireAuth } from "@/app/lib/apiAuth";
 import { UpdateFilter } from "mongodb";
 import { getActivities, pushImagesToActivity } from "@/app/lib/activityService";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } | Promise<{ id: string }> }
+) {
   const auth = await requireAuth("admin");
   if (!auth.authorized) return auth.response;
 
-  const activityId = Number(params.id);
+  const { id } = await params;
+  const activityId = Number(id);
   if (!activityId) return NextResponse.json({ error: "Invalid activity id" }, { status: 400 });
 
   const formData = await request.formData();

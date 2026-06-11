@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "@/app/lib/s3";
 import { requireAuth } from "@/app/lib/apiAuth";
 import { getActivities, addActivity } from "@/app/lib/activityService";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Public endpoint: return activities to visitors and admins
     const activities = await getActivities();
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const auth = await requireAuth("admin");
   if (!auth.authorized) return auth.response;
 
