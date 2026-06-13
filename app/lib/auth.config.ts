@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { comparePasswords, hashPassword } from "./authHelpers";
+import { comparePasswords } from "./authHelpers";
 import { getDb } from "./mongodb";
 import type { JWT } from "next-auth/jwt";
 
@@ -17,34 +17,41 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        try {
-          const db = await getDb();
-          const user = await db.collection("users").findOne({
-            username: credentials.username.toLowerCase(),
-          });
+        let user = null;
 
-          if (!user) {
-            throw new Error("User not found");
+        // retry up to 3 times to handle cold start
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const db = await getDb();
+            user = await db.collection("users").findOne({
+              username: credentials.username.toLowerCase(),
+            });
+            break; // success, exit loop
+          } catch (error) {
+            console.error(`Login attempt ${attempt} failed:`, error);
+            if (attempt === 3) throw new Error("Database connection failed");
+            await new Promise((res) => setTimeout(res, 1000 * attempt)); // wait 1s, 2s
           }
+        }
 
-          const isPasswordValid = await comparePasswords(
-            credentials.password,
-            user.password
-          );
+        if (!user) {
+          throw new Error("User not found");
+        }
 
-          if (!isPasswordValid) {
-            throw new Error("Invalid password");
-          }
+        const isPasswordValid = await comparePasswords(
+          credentials.password,
+          user.password
+        );
 
-          return {
-            id: user._id.toString(),
-            username: user.username,
-            role: user.role,
-          };
-        } catch (error) {
-  console.error(error);
-  throw error;
-}
+        if (!isPasswordValid) {
+          throw new Error("Invalid password");
+        }
+
+        return {
+          id: user._id.toString(),
+          username: user.username,
+          role: user.role,
+        };
       },
     }),
   ],
@@ -72,13 +79,10 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   jwt: {
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
-  secret:
-  process.env.NEXTAUTH_SECRET ||
-  process.env.AUTH_SECRET || "hskfjkhfkkkshjjhfh"
-  
+  secret: process.env.NEXTAUTH_SECRET,
 };
