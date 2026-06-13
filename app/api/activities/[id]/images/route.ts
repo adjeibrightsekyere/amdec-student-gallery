@@ -19,30 +19,32 @@ export async function POST(
   const files = formData.getAll("images");
   if (!files || files.length === 0) return NextResponse.json({ error: "No images provided" }, { status: 400 });
 
-  const uploaded: string[] = [];
+  const region = process.env.MY_AWS_REGION;
+  const bucketName = process.env.MY_AWS_BUCKET_NAME!;
+  const host = region
+    ? `${bucketName}.s3.${region}.amazonaws.com`
+    : `${bucketName}.s3.amazonaws.com`;
 
-  for (const file of files) {
-    if (!(file instanceof File)) continue;
-    const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const keyPath = `activities/${safeFileName}`;
+  const uploadPromises = files
+    .filter((file): file is File => file instanceof File)
+    .map(async (file) => {
+      const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const keyPath = `activities/${safeFileName}`;
 
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.MY_AWS_BUCKET_NAME!,
-        Key: keyPath,
-        Body: buffer,
-        ContentType: file.type,
-      })
-    );
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: keyPath,
+          Body: buffer,
+          ContentType: file.type,
+        })
+      );
 
-    const region = process.env.MY_AWS_REGION;
-    const host = region
-      ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
-      : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
-    const publicPath = `https://${host}/${keyPath}`;
-    uploaded.push(publicPath);
-  }
+      return `https://${host}/${keyPath}`;
+    });
+
+  const uploaded = await Promise.all(uploadPromises);
 
   await pushImagesToActivity(activityId, uploaded);
 

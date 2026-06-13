@@ -7,10 +7,7 @@ import { requireAuth } from "@/app/lib/apiAuth";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth("admin");
-
-  if (!auth.authorized) {
-    return auth.response;
-  }
+  if (!auth.authorized) return auth.response;
 
   const formData = await request.formData();
   const name = formData.get("name")?.toString()?.trim();
@@ -36,20 +33,21 @@ export async function POST(request: NextRequest) {
   const safeFileName = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
   const buffer = Buffer.from(await imageFile.arrayBuffer());
 
+  const region = process.env.MY_AWS_REGION;
+  const bucketName = process.env.MY_AWS_BUCKET_NAME!;
+  const host = region
+    ? `${bucketName}.s3.${region}.amazonaws.com`
+    : `${bucketName}.s3.amazonaws.com`;
+
   await s3.send(
     new PutObjectCommand({
-      Bucket: process.env.MY_AWS_BUCKET_NAME!,
+      Bucket: bucketName,
       Key: `${studentClass}/${safeFileName}`,
       Body: buffer,
       ContentType: imageFile.type,
-      // ACL removed
     })
   );
 
-  const region = process.env.MY_AWS_REGION;
-  const host = region
-    ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
-    : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
   const publicPath = `https://${host}/${studentClass}/${safeFileName}`;
 
   let uploadedStudent: any;
@@ -66,7 +64,6 @@ export async function POST(request: NextRequest) {
       class: studentClass,
       images: [publicPath],
     };
-    console.log("Adding new student:", newStudent);
     await addStudent(newStudent);
     uploadedStudent = newStudent;
   }

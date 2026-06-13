@@ -33,32 +33,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "At least one image is required." }, { status: 400 });
   }
 
-  const uploadedPaths: string[] = [];
+  const region = process.env.MY_AWS_REGION;
+  const bucketName = process.env.MY_AWS_BUCKET_NAME!;
+  const host = region
+    ? `${bucketName}.s3.${region}.amazonaws.com`
+    : `${bucketName}.s3.amazonaws.com`;
 
-  for (const file of files) {
-    if (!(file instanceof File)) continue;
+  const uploadPromises = files
+    .filter((file): file is File => file instanceof File)
+    .map(async (file) => {
+      const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const keyPath = classValue
+        ? `activities/${classValue}/${safeFileName}`
+        : `activities/${safeFileName}`;
 
-    const safeFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const keyPath = classValue ? `activities/${classValue}/${safeFileName}` : `activities/${safeFileName}`;
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: keyPath,
+          Body: buffer,
+          ContentType: file.type,
+        })
+      );
 
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.MY_AWS_BUCKET_NAME!,
-        Key: keyPath,
-        Body: buffer,
-        ContentType: file.type,
-        // ACL removed
-      })
-    );
+      return `https://${host}/${keyPath}`;
+    });
 
-    const region = process.env.MY_AWS_REGION;
-    const host = region
-      ? `${process.env.MY_AWS_BUCKET_NAME}.s3.${region}.amazonaws.com`
-      : `${process.env.MY_AWS_BUCKET_NAME}.s3.amazonaws.com`;
-    const publicPath = `https://${host}/${keyPath}`;
-    uploadedPaths.push(publicPath);
-  }
+  const uploadedPaths = await Promise.all(uploadPromises);
 
   const activities = await getActivities();
   const nextId = (activities.reduce((max: number, a: any) => Math.max(max, a.id || 0), 0) || 0) + 1;
