@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useState } from "react";
+import imageCompression from "browser-image-compression";
 
 export default function ActivityUploadForm({ onDone, classId }: { onDone?: () => void, classId?: string }) {
   const [name, setName] = useState("");
@@ -10,6 +11,26 @@ export default function ActivityUploadForm({ onDone, classId }: { onDone?: () =>
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const compressFile = async (file: File): Promise<File> => {
+    // skip compression for already-small files
+    if (file.size < 1_000_000) return file;
+
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1.5,
+        maxWidthOrHeight: 2000,
+        useWebWorker: true,
+        fileType: "image/jpeg",
+      });
+      // preserve original name but ensure jpeg extension since HEIC gets converted
+      const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+      return new File([compressed], newName, { type: "image/jpeg" });
+    } catch (err) {
+      console.error("Compression failed, using original file:", err);
+      return file;
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name || !date || !files || files.length === 0) {
@@ -18,15 +39,27 @@ export default function ActivityUploadForm({ onDone, classId }: { onDone?: () =>
     }
 
     setLoading(true);
-    setStatus("");
+    setStatus("Compressing images…");
 
     const form = new FormData();
     form.append("activityName", name);
     form.append("date", date);
     if (classId) form.append("class", classId);
-    for (const f of Array.from(files)) {
-      form.append("images", f);
+
+    try {
+      const compressedFiles = await Promise.all(
+        Array.from(files).map((f) => compressFile(f))
+      );
+      for (const f of compressedFiles) {
+        form.append("images", f);
+      }
+    } catch (err) {
+      setLoading(false);
+      setStatus("Failed to process images.");
+      return;
     }
+
+    setStatus("Uploading…");
 
     const res = await fetch("/api/activities", {
       method: "POST",

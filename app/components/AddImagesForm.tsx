@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useState } from "react";
+import imageCompression from "browser-image-compression";
 
 export default function AddImagesForm({ activityId, onDone }: { activityId: number; onDone?: () => void }) {
   const [files, setFiles] = useState<FileList | null>(null);
@@ -8,14 +9,44 @@ export default function AddImagesForm({ activityId, onDone }: { activityId: numb
   const [status, setStatus] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const compressFile = async (file: File): Promise<File> => {
+    if (file.size < 1_000_000) return file;
+
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1.5,
+        maxWidthOrHeight: 2000,
+        useWebWorker: true,
+        fileType: "image/jpeg",
+      });
+      const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+      return new File([compressed], newName, { type: "image/jpeg" });
+    } catch (err) {
+      console.error("Compression failed, using original file:", err);
+      return file;
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!files || files.length === 0) return;
     setLoading(true);
-    setStatus("");
+    setStatus("Compressing images…");
 
     const form = new FormData();
-    for (const f of Array.from(files)) form.append("images", f);
+
+    try {
+      const compressedFiles = await Promise.all(
+        Array.from(files).map((f) => compressFile(f))
+      );
+      for (const f of compressedFiles) form.append("images", f);
+    } catch (err) {
+      setLoading(false);
+      setStatus("Failed to process images.");
+      return;
+    }
+
+    setStatus("Uploading…");
 
     const res = await fetch(`/api/activities/${activityId}/images`, { method: "POST", body: form });
 

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       Bucket: bucketName,
       Key: `${studentClass}/${safeFileName}`,
       Body: buffer,
-      ContentType: imageFile.type,
+      ContentType: imageFile.type || "application/octet-stream",
     })
   );
 

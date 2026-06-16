@@ -37,7 +37,7 @@ export async function POST(
           Bucket: bucketName,
           Key: keyPath,
           Body: buffer,
-          ContentType: file.type,
+          ContentType: file.type || "application/octet-stream",
         })
       );
 
